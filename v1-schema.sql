@@ -1,5 +1,3 @@
-V1
-
 -- 1) Define the enum of native types
 CREATE TYPE primitives AS ENUM (
   'smallint',         -- 2-byte int
