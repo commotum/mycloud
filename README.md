@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+-- 1) Define the enum of native types
+CREATE TYPE primitives AS ENUM (
+  'smallint',         -- 2-byte int
+  'integer',          -- 4-byte int
+  'bigint',           -- 8-byte int
+  'real',             -- 4-byte float
+  'double precision', -- 8-byte float
+  'numeric',          -- arbitrary precision
+  'text',             -- variable-length string
+  'varchar',          -- variable-length string
+  'char',             -- fixed-length string
+  'bytea',            -- binary
+  'boolean',          -- true/false
+  'uuid',             -- UUID
+  'json',             -- JSON
+  'jsonb',            -- binary JSON
+  'date',             -- calendar date
+  'time',             -- time of day
+  'timestamp',        -- without time zone
+  'timestamptz',      -- with time zone
+  'interval'          -- span of time
+);
 
-## Getting Started
+-- 2) Create value_types with UUID PK, and name as UNIQUE
+CREATE TABLE value_types (
+  id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name      TEXT        NOT NULL UNIQUE,
+  primitive primitives  NOT NULL
+);
 
-First, run the development server:
+-- 3) Add "Cardinality" as a boolean type entry
+INSERT INTO value_types (name, primitive)
+VALUES ('Cardinality', 'boolean');
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+-- 4) Create tag_types with UUID PK, and name as UNIQUE
+CREATE TABLE tag_types (
+  id             UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  name           TEXT     NOT NULL UNIQUE,
+  value_type_id  UUID     NOT NULL REFERENCES value_types(id),
+  cardinality    BOOLEAN  NOT NULL DEFAULT false  -- false = one, true = many
+);
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+-- 5) Create block_types with array of tag_type UUIDs
+CREATE TABLE block_types (
+  id   UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT     NOT NULL UNIQUE,
+  tags UUID[]   NOT NULL DEFAULT '{}'  -- array of tag_types.id
+);
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+-- 6) Create hyperdoc_types with arrays of block_type and tag_type UUIDs
+CREATE TABLE hyperdoc_types (
+  id     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  name   TEXT     NOT NULL UNIQUE,
+  blocks UUID[]   NOT NULL DEFAULT '{}',  -- array of block_types.id
+  tags   UUID[]   NOT NULL DEFAULT '{}'   -- array of tag_types.id
+);
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-- 7) Create blueprints, grouping hyperdoc, block, and tag types
+CREATE TABLE blueprints (
+  id        UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  name      TEXT     NOT NULL UNIQUE,
+  hyperdocs UUID[]   NOT NULL DEFAULT '{}',  -- array of hyperdoc_types.id
+  blocks    UUID[]   NOT NULL DEFAULT '{}',  -- array of block_types.id
+  tags      UUID[]   NOT NULL DEFAULT '{}'   -- array of tag_types.id
+);
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
