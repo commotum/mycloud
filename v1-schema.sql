@@ -1,3 +1,5 @@
+V1
+
 -- 1) Define the enum of native types
 CREATE TYPE primitives AS ENUM (
   'smallint',         -- 2-byte int
@@ -55,8 +57,8 @@ CREATE TABLE hyperdoc_types (
   tags   UUID[]   NOT NULL DEFAULT '{}'   -- array of tag_types.id
 );
 
--- 7) Create blueprints, grouping hyperdoc, block, and tag types
-CREATE TABLE blueprints (
+-- 7) Create space_types, grouping hyperdoc, block, and tag types
+CREATE TABLE space_types (
   id        UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
   name      TEXT     NOT NULL UNIQUE,
   hyperdocs UUID[]   NOT NULL DEFAULT '{}',  -- array of hyperdoc_types.id
