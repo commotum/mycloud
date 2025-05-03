@@ -1,0 +1,31 @@
+// newDB.dot  ── rewritten system (WASM transactor)
+digraph newDB {
+  rankdir=LR;
+  node [shape=box, style=rounded, fontsize=10];
+
+  subgraph clusterPeers {
+    label = "Peers";
+    style=dashed;
+    PeerJS   [label="Peer (JS+WASM)"];
+    PeerRust [label="Peer (Rust)"];
+  }
+
+  Runtime   [shape=component, label="WasmEdge\nruntime"];
+  Transactor [shape=box3d, label="Transactor\n(Rust → wasm32-wasi)"];
+  KVStore    [shape=cylinder, label="KV Storage\n(Postgres | RocksDB | FDB)"];
+
+  // hosting linkage
+  Runtime -> Transactor [arrowhead=none, style=dashed, label="hosts"];
+
+  // write path
+  PeerJS   -> Transactor [label="tx (gRPC/Web)"];
+  PeerRust -> Transactor;
+  Transactor -> KVStore  [label="CAS blob write"];
+  KVStore   -> Transactor [style=dashed, label="CAS read"];
+
+  // read / sync
+  KVStore -> PeerJS   [style=dotted, label="segment stream"];
+  KVStore -> PeerRust [style=dotted];
+  Transactor -> PeerJS   [label="tx-report"];
+  Transactor -> PeerRust;
+}

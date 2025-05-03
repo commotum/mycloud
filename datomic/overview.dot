@@ -1,0 +1,61 @@
+// datomic_overview.dot  ── architecture & information-model in one view
+digraph DatomicOverview {
+  rankdir=LR;
+  node [shape=box, style=rounded, fontsize=10];
+
+  /* ───────── 1. information model ───────── */
+  subgraph clusterInfo {
+    label = "Information Model";
+    style = dashed;
+    Datoms  [shape=oval, label="Datoms\n⟨E A V Tx Op⟩"];
+    Schema  [label="Attribute Schema\n(type ▸ cardinality)"];
+    Entity  [label="Entity View\n(A → V map)"];
+    Datoms  -> Entity;
+    Schema  -> Datoms  [style=dotted, label="constrains"];
+  }
+
+  /* ───────── 2. immutable indexes ───────── */
+  subgraph clusterIdx {
+    label = "Persistent Indexes";
+    style = dashed;
+    EAVT [label="EAVT"];
+    AVET [label="AVET"];
+    AEVT [label="AEVT"];
+    VAET [label="VAET"];
+  }
+
+  /* ───────── 3. durable log ───────── */
+  Log   [shape=note, label="Transaction Log\n(chronological)"];
+  Builder [label="Index Builder\n(bulk-merge)"];
+
+  /* ───────── 4. processes ───────── */
+  Transactor [shape=box3d, label="Transactor\n(single writer)"];
+  Peer      [label="Peer Query Engine\n(app process)"];
+  Cache     [shape=trapezium, label="Process Cache\n(LRU, mem/SSD)"];
+
+  /* ───────── 5. storage layer ───────── */
+  Storage [shape=cylinder,
+           label="Pluggable Storage\n(Postgres | S3 | Dynamo | …)"];
+
+  /* write pipeline */
+  Peer -> Transactor [label="tx request"];
+  Transactor -> Log  [label="append"];
+  Log -> Builder;
+  Builder -> EAVT; Builder -> AVET; Builder -> AEVT; Builder -> VAET;
+  Transactor -> Storage [label="segment CAS"];
+
+  /* read path */
+  Peer -> Cache [arrowhead=none];
+  Cache -> EAVT [style=dotted];
+  Cache -> AVET [style=dotted];
+  Cache -> AEVT [style=dotted];
+  Cache -> VAET [style=dotted];
+  Storage -> Cache [style=dotted, label="segment fetch (miss)"];
+
+  /* persistence of structures */
+  Storage -> Log  [style=dashed];
+  Storage -> EAVT [style=dashed];
+  Storage -> AVET [style=dashed];
+  Storage -> AEVT [style=dashed];
+  Storage -> VAET [style=dashed];
+}

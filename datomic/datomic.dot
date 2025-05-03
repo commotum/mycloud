@@ -1,0 +1,27 @@
+// datomic.dot  ── classic Datomic architecture
+digraph Datomic {
+  rankdir=LR;
+  node [shape=box, style=rounded, fontsize=10];
+
+  subgraph clusterPeers {
+    label = "Peers (clients)";
+    style=dashed;
+    Peer1 [label="Peer JVM #1"];
+    Peer2 [label="Peer JVM #2"];
+  }
+
+  Transactor [shape=box3d, label="Transactor\n(Clojure JVM)"];
+  Storage    [shape=cylinder, label="Postgres\n table: datomic_kvs"];
+
+  // write path
+  Peer1 -> Transactor [label="tx (EDN)"];
+  Peer2 -> Transactor;
+  Transactor -> Storage  [label="CAS blob write"];
+  Storage    -> Transactor [style=dashed, label="CAS read / retry"];
+
+  // read / sync
+  Storage -> Peer1 [style=dotted, label="segment stream"];
+  Storage -> Peer2 [style=dotted];
+  Transactor -> Peer1 [label="tx-report"];
+  Transactor -> Peer2;
+}
